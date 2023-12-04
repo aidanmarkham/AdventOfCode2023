@@ -1,1 +1,1 @@
-Day03.Do();
+Day04.DoPartTwo();
