@@ -78,11 +78,12 @@
     public static void DoPartTwo()
     {
         var lines = File.ReadAllLines(
-            "C:\\Development\\Aesthetician Labs\\AdventOfCode2023\\AdventOfCode\\Day05_Test.txt");
+            "C:\\Development\\Aesthetician Labs\\AdventOfCode2023\\AdventOfCode\\Day05.txt");
 
         var seeds = lines[0].Split(':')[1].Trim().Split(' ');
         var ranges = new List<(long, long)>();
 
+        // build list of seed ranges
         for (int i = 0; i < seeds.Length; i += 2)
         {
             ranges.Add((long.Parse(seeds[i]), long.Parse(seeds[i + 1])));
@@ -117,37 +118,37 @@
             maps.Add(map);
             index++;
         }
-        
-        
+
+        // this stores the current stage of ranges
+        var currentRanges = new Stack<(long, long)>();
+        var lowest = long.MaxValue;
         // go through the seed ranges 
         for (int i = 0; i < ranges.Count; i++)
         {
-            // this stores the current stage of ranges
-            var currentRanges = new List<(long, long)>();
-            currentRanges.Add(ranges[i]);
+            currentRanges.Clear();
+            // add starting range to this 
+            currentRanges.Push(ranges[i]);
 
             // this stores the next ranges to run 
-            var nextRanges = new List<(long, long)>();
-            
+            var nextRanges = new Stack<(long, long)>();
             
             // go through all maps 
             for (int m = 0; m < maps.Count; m++)
             {
-                if(currentRanges.Count > 0) Console.WriteLine("Current Ranges: ");
-                for (int c = 0; c < currentRanges.Count; c++)
-                {
-                    Console.WriteLine(" - (" + currentRanges[c].Item1 + ", " + currentRanges[c].Item2 + ")");
-                }
-                
+                Console.WriteLine("\nProcessing Map: " + m);
                 // go through all the ranges we currently have
-                for (int j = 0; j < currentRanges.Count; j++)
+                while (currentRanges.Count > 0)
                 {
+                    var currentRange = currentRanges.Pop();
+                 
+                    Console.Write("Current Range: " + currentRange);
                     // turn current range into start and end
-                    long r1 = currentRanges[j].Item1;
-                    long r2 = r1 + currentRanges[j].Item2 - 1;
-
+                    long r1 = currentRange.Item1;
+                    long r2 = r1 + currentRange.Item2 - 1;
 
                     var map = maps[m];
+
+                    var hadFit = false;
                     // go through the ranges in the map
                     for (int r = 0; r < map.Count; r++)
                     {
@@ -155,32 +156,75 @@
                         var m2 = m1 + map[r].Item3;
 
                         var offset = map[r].Item1 - map[r].Item2;
-                        
-                        Console.WriteLine("Comparing Ranges: (" + r1 + ", " + r2 + "), (" + m1 + ", " + m2 + ")");
-                        
-                        // the ranges overlap
-                        if (m2 >= r1 && m1 <= r2)
-                        {
-                            var x1 = Math.Max(r1, m1);
-                            var x2 = Math.Min(r2, m2);
 
-                            nextRanges.Add((x1 + offset, x2 - x1 + 1));
+                        // entire range fits
+                        if (m1 <= r1 && m2 >= r2)
+                        {
+                            
+                            
+                            // convert it and add it to the next ranges in it's entirety
+                            var bottom = r1;
+                            var top = r2;
+                            nextRanges.Push((bottom + offset, top - bottom + 1));
+                            Console.Write("\n   Map: " + map[r] +" Full fit. Creating Range: " + (bottom + offset, top - bottom + 1));
+                            hadFit = true;
+                            break;
+                        }
+                        // partial fit (range below map, m1 is inside our range)
+                        if (r1 <= m1 && m1 <= r2)
+                        {
+                            
+                            // take only the bit that counts in the range and add it to next ranges
+                            nextRanges.Push((m1 + offset, r2 - m1 + 1));
+                            Console.Write("\n   Map: " + map[r] +" Partial fit below. Creating Range: " + (m1 + offset, r2 - m1 + 1));
+                            // add the remaining bit to the current range to go around again
+                            currentRanges.Push((r1, m1 - r1));
+
+                            hadFit = true;
+                            break;
+                        }
+                        // partial fit (range above map, m2 is inside our range)
+                        if (r1 <= m2 && m2 <= r2)
+                        {
+                            // take only the bit that counts in the range and add it to next ranges
+                            // r1 -> m2
+                            nextRanges.Push((r1 + offset, m2 - r1 + 1));
+                            Console.Write("\n   Map: " + map[r] +" Partial fit above. Creating Range: " + (r1 + offset, m2 - r1 + 1));
+                            // add the remaining bit to the current range to go around again
+                            // m2 -> r2
+                            currentRanges.Push((m2+1, r2 - m2));
+
+                            hadFit = true;
+                            break;
                         }
                     }
+
+                    // if it didn't apply to any of the ranges, go ahead and consider it done
+                    if (!hadFit)
+                    {
+                        Console.Write("\n   No fit.");
+                        nextRanges.Push(currentRange);
+                    }
+                    
+                    Console.Write("\n");
                 }
 
                 // now that we've gone through all current ranges, nextRanges will have the ranges we need for the next map session
                 currentRanges = nextRanges;
-                nextRanges = new List<(long, long)>();
+                nextRanges = new Stack<(long, long)>();
             }
+
             
-            if(currentRanges.Count > 0) Console.WriteLine("Current Ranges: ");
-            for (int c = 0; c < currentRanges.Count; c++)
+            foreach (var range in currentRanges)
             {
-                Console.WriteLine(" - (" + currentRanges[c].Item1 + ", " + currentRanges[c].Item2 + ")");
+                Console.WriteLine("Range: " + range);
+                if (range.Item1 < lowest)
+                {
+                    lowest = range.Item1;
+                }
             }
         }
-
         
+        Console.WriteLine("Lowest: " + lowest);
     }
 }

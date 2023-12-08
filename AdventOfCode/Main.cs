@@ -1,1 +1,1 @@
-Day05.DoPartTwo();
+Day06.DoPartTwo();
