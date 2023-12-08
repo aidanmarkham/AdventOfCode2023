@@ -12,10 +12,10 @@ public static class Day08
             var line = lines[i];
             var node = line.Split('=')[0].Trim();
             var left = line.Split('=')[1].Trim().Split(',')[0].Substring(1);
-            var right = line.Split('=')[1].Trim().Split(',')[1].Substring(1, 3);   
-            
+            var right = line.Split('=')[1].Trim().Split(',')[1].Substring(1, 3);
+
             //Console.WriteLine("Node: " + node + " Left: " + left + " Right: " + right);
-            
+
             nodes.Add(node, (left, right));
         }
 
@@ -25,9 +25,9 @@ public static class Day08
         while (currentNode != "ZZZ")
         {
             if (turnIndex == turns.Length) turnIndex = 0;
-            
+
             var dir = turns[turnIndex];
-            
+
             Console.WriteLine("Current Node: " + currentNode + " Turning: " + dir);
             if (dir == 'L')
             {
@@ -44,8 +44,8 @@ public static class Day08
 
         Console.WriteLine("Steps: " + step);
     }
-    
-    
+
+
     public static void DoPartTwo()
     {
         var lines = File.ReadAllLines(
@@ -58,59 +58,68 @@ public static class Day08
             var line = lines[i];
             var node = line.Split('=')[0].Trim();
             var left = line.Split('=')[1].Trim().Split(',')[0].Substring(1);
-            var right = line.Split('=')[1].Trim().Split(',')[1].Substring(1, 3);   
-            
+            var right = line.Split('=')[1].Trim().Split(',')[1].Substring(1, 3);
+
             //Console.WriteLine("Node: " + node + " Left: " + left + " Right: " + right);
-            
+
             nodes.Add(node, (left, right));
         }
 
         var currentNodes = new List<string>();
-        foreach( var node in nodes)
+        foreach (var node in nodes)
         {
             if (node.Key[2] == 'A')
             {
                 currentNodes.Add(node.Key);
-            } 
+            }
         }
-        var turnIndex = 0;
-        var step = 0;
-        bool done = false;
-        while (!done)
+
+        List<long> steps = new List<long>();
+        for (int i = 0; i < currentNodes.Count; i++)
         {
-            Console.WriteLine("Step: " + step);
-            if (turnIndex == turns.Length) turnIndex = 0;
-            
-            var dir = turns[turnIndex];
-            for (int i = 0; i < currentNodes.Count; i++)
+            var currentNode = currentNodes[i];
+            var turnIndex = 0;
+            long step = 0;
+            while (currentNode[2] != 'Z')
             {
-                //Console.WriteLine("Step: " + step + " Current Node: " + currentNodes[i]);
+                if (turnIndex == turns.Length) turnIndex = 0;
+
+                var dir = turns[turnIndex];
                 
                 if (dir == 'L')
                 {
-                    currentNodes[i] = nodes[currentNodes[i]].Item1;
+                    currentNode = nodes[currentNode].Item1;
                 }
                 else
                 {
-                    currentNodes[i] = nodes[currentNodes[i]].Item2;
+                    currentNode = nodes[currentNode].Item2;
                 }
+
+                turnIndex++;
+                step++;
             }
 
-            turnIndex++;
-            step++;
-
-            // see if we're done
-            var allZ = true;
-            for (int i = 0; i < currentNodes.Count; i++)
-            {
-                if (currentNodes[i][2] != 'Z')
-                {
-                    allZ = false;
-                }
-            }
-            done = allZ;
+            steps.Add(step);
         }
-
-        Console.WriteLine("Steps: " + step);
+        
+        Console.WriteLine("All Steps: ");
+        for (int i = 0; i < steps.Count; i++)
+        {
+            Console.WriteLine(" - Step: " + steps[i]);
+        }
+        Console.WriteLine("Least Common Multiple: " + LCM(steps.ToArray()));
+    }
+    
+    static long LCM(long[] numbers)
+    {
+        return numbers.Aggregate(lcm);
+    }
+    static long lcm(long a, long b)
+    {
+        return Math.Abs(a * b) / GCD(a, b);
+    }
+    static long GCD(long a, long b)
+    {
+        return b == 0 ? a : GCD(b, a % b);
     }
 }
