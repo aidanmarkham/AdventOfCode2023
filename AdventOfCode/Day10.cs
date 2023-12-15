@@ -338,6 +338,17 @@ public static class Day10
             current = next;
         }
 
+        // display grid
+        for (int y = 0; y < grid.Count; y++)
+        {
+            for (int x = 0; x < grid[y].Count; x++)
+            {
+                Console.Write(grid[y][x].PrettyIcon());
+            }
+
+            Console.Write("\n");
+        }
+        
         // flood fill edges
         Queue<(int x, int y)> insideConnections = new Queue<(int x, int y)>();
         for (int y = 0; y < grid.Count; y++)
@@ -397,12 +408,7 @@ public static class Day10
 
                 if (grid[y][x].InsideLoop && !grid[y][x].PartOfLoop)
                 {
-                    Console.Write('_'); 
                     count++;
-                }
-                else
-                {
-                    Console.Write(' '); 
                 }
             }
 
