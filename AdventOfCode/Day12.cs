@@ -63,6 +63,8 @@ public static class Day12
         
         Console.WriteLine("Total: " + allPosibilities);
     }
+    
+    // CONSIDER SOMETHING THAT KEEPS TRACK OF NUMBERS AND ONLY TRIES TO PLACE THEM IN APPROPRIATE ORDER
     public static void DoPartTwo()
     {
         var lines = File.ReadAllLines(
@@ -113,7 +115,7 @@ public static class Day12
                     continue;
                 }
 
-                //Console.WriteLine(perms.Count + " Map : " + perm.map + " work: " + perm.work + " range: " + perm.ranges + " ");
+                Console.WriteLine(perms.Count + " Map : " + perm.map + " work: " + perm.work + " range: " + perm.ranges + " ");
                 
                 // pull the largest count out of the list of already placed counts
                 var localPlacedCounts = perm.ranges.Split(',').ToList();
