@@ -63,8 +63,7 @@ public static class Day12
         
         Console.WriteLine("Total: " + allPosibilities);
     }
-    
-    // CONSIDER SOMETHING THAT KEEPS TRACK OF NUMBERS AND ONLY TRIES TO PLACE THEM IN APPROPRIATE ORDER
+
     public static void DoPartTwo()
     {
         var lines = File.ReadAllLines(
@@ -98,6 +97,7 @@ public static class Day12
             }
             
             
+            
             // set up stack to iterate
             Stack<(string map, string work, string ranges)> perms = new Stack<(string map, string work, string ranges)>();
             perms.Push((map, map, countString));
@@ -115,7 +115,7 @@ public static class Day12
                     continue;
                 }
 
-                Console.WriteLine(perms.Count + " Map : " + perm.map + " work: " + perm.work + " range: " + perm.ranges + " ");
+                Console.WriteLine(perm.map + " | " + perm.work + " | " + perm.ranges);
                 
                 // pull the largest count out of the list of already placed counts
                 var localPlacedCounts = perm.ranges.Split(',').ToList();
@@ -141,7 +141,8 @@ public static class Day12
                 // slide through this map, recursing anywhere the largest map could be placed
                 for (int c = 0; c < perm.work.Length - largest + 1; c++)
                 {
-                    if (!perm.work.Substring(c, largest).Contains('.') && // this range doesn't contain any .
+                    if ((c - 1 < 0 || perm.work[c-1] != '#') && // before this range is either the beginning or at least not a '#
+                        !perm.work.Substring(c, largest).Contains('.') && // this range doesn't contain any .
                         (c+largest == perm.work.Length || perm.map[c+largest] != '#')) // after this range is either the end, or at least isn't a #
                     {
                         var newMap = perm.map;

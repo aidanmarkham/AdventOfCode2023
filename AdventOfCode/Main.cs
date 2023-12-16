@@ -1,3 +1,3 @@
 using System.Diagnostics;
 
-Day16.DoPartTwo();
+Day12.DoPartTwo();
