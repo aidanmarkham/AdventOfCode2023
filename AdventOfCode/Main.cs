@@ -1,3 +1,1 @@
-using System.Diagnostics;
-
-Day12.DoPartTwo();
+Day17.DoPartOne();

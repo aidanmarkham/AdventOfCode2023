@@ -22,7 +22,7 @@ public static class Day12
             {
                 counts.Add(int.Parse(countStrings[j]));
             }
-            
+
             var list = new List<string>();
             list = PermuteMap(list, map);
             int possibilities = 0;
@@ -33,18 +33,20 @@ public static class Day12
                 //Console.WriteLine(" - " + list[j] + " - " + (matches ? "match" : " no match"));
                 if (matches) possibilities++;
             }
+
             allPosibilities += possibilities;
         }
-        
+
         Console.WriteLine("Total: " + allPosibilities);
     }
+
     public static void DoPartOneOpt()
     {
         var lines = File.ReadAllLines(
             "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day12.txt");
 
         var allPosibilities = 0;
-        
+
         for (int i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
@@ -55,22 +57,22 @@ public static class Day12
             {
                 counts.Add(int.Parse(countStrings[j]));
             }
-            
+
             var permutations = new List<string>();
             permutations = PermuteMap(permutations, map, counts);
             allPosibilities += permutations.Count;
         }
-        
+
         Console.WriteLine("Total: " + allPosibilities);
     }
 
     public static void DoPartTwo()
     {
         var lines = File.ReadAllLines(
-            "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day12_Test.txt");
+            "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day12.txt");
 
-        var allPosibilities = 0;
-        
+        long allPosibilities = 0;
+
         for (int i = 0; i < lines.Length; i++)
         {
             // parse data
@@ -82,10 +84,12 @@ public static class Day12
             {
                 counts.Add(int.Parse(countStrings[j]));
             }
+
             var countString = line.Split(' ')[1];
-            
-            
+
+
             // apply multiplication to data
+
             var origMap = map;
             var origCounts = countString;
             var origCountsList = new List<int>(counts);
@@ -95,39 +99,31 @@ public static class Day12
                 countString += "," + origCounts;
                 counts.AddRange(origCountsList);
             }
-            
-            
-            
+
+
             // set up stack to iterate
-            Stack<(string map, string work, string ranges)> perms = new Stack<(string map, string work, string ranges)>();
+            Stack<(string map, string work, string ranges)> perms =
+                new Stack<(string map, string work, string ranges)>();
             perms.Push((map, map, countString));
 
-            var possibles = new List<string>();
+            var testSituations = new List<string>();
+            long p = 0;
             while (perms.Count > 0)
             {
                 var perm = perms.Pop();
+                
+                if(p > 0 && p % 10000 == 0) Console.WriteLine(line + ": " + p + " " + perm.map + " | " + perm.work + " | " + perm.ranges);
+                
                 if (perm.ranges.Length == 0)
                 {
-                    if (MatchesCounts(perm.map, counts) && !possibles.Contains(perm.map))
-                    {
-                        possibles.Add(perm.map);
-                    }
+                    if (MatchesCounts(perm.map, counts)) p++;
                     continue;
                 }
 
-                Console.WriteLine(perm.map + " | " + perm.work + " | " + perm.ranges);
-                
-                // pull the largest count out of the list of already placed counts
+                // pull the first count
                 var localPlacedCounts = perm.ranges.Split(',').ToList();
-                int largest = -1;
-                for (int j = 0; j < localPlacedCounts.Count; j++)
-                {
-                    if (int.Parse(localPlacedCounts[j]) > largest)
-                    {
-                        largest = int.Parse(localPlacedCounts[j]);
-                    }
-                }
-                localPlacedCounts.Remove(largest.ToString());
+                int currentCount = int.Parse(localPlacedCounts[0]);
+                localPlacedCounts.RemoveAt(0);
                 var newRanges = "";
                 for (int j = 0; j < localPlacedCounts.Count; j++)
                 {
@@ -137,42 +133,54 @@ public static class Day12
                         newRanges += ",";
                     }
                 }
-                
+
                 // slide through this map, recursing anywhere the largest map could be placed
-                for (int c = 0; c < perm.work.Length - largest + 1; c++)
+                for (int c = 0; c < perm.work.Length - currentCount + 1; c++)
                 {
-                    if ((c - 1 < 0 || perm.work[c-1] != '#') && // before this range is either the beginning or at least not a '#
-                        !perm.work.Substring(c, largest).Contains('.') && // this range doesn't contain any .
-                        (c+largest == perm.work.Length || perm.map[c+largest] != '#')) // after this range is either the end, or at least isn't a #
+                    if ((c - 1 < 0 ||
+                         perm.work[c - 1] != '#') && // before this range is either the beginning or at least not a '#
+                        !perm.work.Substring(c, currentCount).Contains('.') && // this range doesn't contain any .
+                        (c + currentCount == perm.work.Length ||
+                         perm.map[c + currentCount] !=
+                         '#')) // after this range is either the end, or at least isn't a #
                     {
                         var newMap = perm.map;
                         var newWork = perm.work;
-                        for (int j = 0; j < largest; j++)
+                        for (int j = 0; j < currentCount; j++)
                         {
                             newMap = newMap.ReplaceAt(c + j, '#');
                             newWork = newWork.ReplaceAt(c + j, '.');
                         }
 
-                        if (c + largest < perm.work.Length)
+                        if (c + currentCount < perm.work.Length)
                         {
-                            newMap = newMap.ReplaceAt(c + largest, '.');
-                            newWork = newWork.ReplaceAt(c + largest, '.');
+                            newMap = newMap.ReplaceAt(c + currentCount, '.');
+                            newWork = newWork.ReplaceAt(c + currentCount, '.');
                         }
-                
+
+                        for (int j = c - 1; j >= 0; j--)
+                        {
+                            if (newMap[j] == '?')
+                            {
+                                newMap = newMap.ReplaceAt(j, '.');
+                            }
+                            newWork = newWork.ReplaceAt(j, '.');
+                        }
+
                         if (CouldMatchCount(newMap, counts) &&
                             !perms.Contains((newMap, newWork, newRanges)))
                         {
-                           // Console.WriteLine("Permuting on possibility after placing " + largest + ": " + newMap);
+                            // Console.WriteLine("Permuting on possibility after placing " + largest + ": " + newMap);
                             perms.Push((newMap, newWork, newRanges));
                         }
                     }
                 }
             }
-            
-            Console.WriteLine("Possibilities: " + possibles.Count);
-            allPosibilities += possibles.Count;
+
+            Console.WriteLine(line + " Possibilities: " + p);
+            allPosibilities += p;
         }
-        
+
         Console.WriteLine("Total: " + allPosibilities);
     }
 
@@ -228,25 +236,26 @@ public static class Day12
             {
                 var a = map.ReplaceAt(i, '.');
                 var b = map.ReplaceAt(i, '#');
-                
+
                 if (CouldMatchCount(a, counts))
                 {
                     list = PermuteMap(list, a, counts);
                 }
-                
+
                 if (CouldMatchCount(b, counts))
                 {
                     list = PermuteMap(list, b, counts);
                 }
-                
+
                 break;
             }
         }
 
         return list;
     }
-    
-    public static List<string> PermuteMap(List<string> list, string map, string work, List<int> counts, List<int> placedCounts)
+
+    public static List<string> PermuteMap(List<string> list, string map, string work, List<int> counts,
+        List<int> placedCounts)
     {
         // save if we're done
         if (placedCounts.Count == 0)
@@ -256,6 +265,7 @@ public static class Day12
                 //Console.WriteLine("Adding to possibilities: " + map);
                 list.Add(map);
             }
+
             return list;
         }
 
@@ -269,13 +279,15 @@ public static class Day12
                 largest = localPlacedCounts[i];
             }
         }
+
         localPlacedCounts.Remove(largest);
 
         // slide through this map, recursing anywhere the largest map could be placed
         for (int i = 0; i < work.Length - largest + 1; i++)
         {
             if (!work.Substring(i, largest).Contains('.') && // this range doesn't contain any .
-                (i+largest == work.Length || map[i+largest] != '#')) // after this range is either the end, or at least isn't a #
+                (i + largest == work.Length ||
+                 map[i + largest] != '#')) // after this range is either the end, or at least isn't a #
             {
                 var newMap = map;
                 var newWork = work;
@@ -290,7 +302,7 @@ public static class Day12
                     newMap = newMap.ReplaceAt(i + largest, '.');
                     newWork = newWork.ReplaceAt(i + largest, '.');
                 }
-                
+
                 if (CouldMatchCount(newMap, counts))
                 {
                     Console.WriteLine("Permuting on possibility after placing " + largest + ": " + newMap);
@@ -301,7 +313,7 @@ public static class Day12
 
         return list;
     }
-    
+
     public static bool MatchesCounts(string map, List<int> counts)
     {
         List<int> hashes = new List<int>();
@@ -355,20 +367,21 @@ public static class Day12
                 }
             }
         }
+
         if (current.Length > 0)
         {
             chunks.Add(current);
         }
-        
+
         for (int i = 0; i < counts.Count; i++)
         {
             bool matched = false;
-            
+
             for (int j = 0; j < chunks.Count; j++)
             {
-                int len = chunks[j].Length;  
+                int len = chunks[j].Length;
                 if (len == 0) continue;
-                
+
                 // it's longer than it needs to be but might still be ok with ?s
                 if (len > counts[i] && chunks[j].Contains('?'))
                 {
@@ -380,9 +393,10 @@ public static class Day12
                             matched = true;
                             break;
                         }
+
                         if (chunks[j][start + counts[i]] == '?')
                         {
-                            chunks[j] = chunks[j].Remove(start, counts[i]+1);
+                            chunks[j] = chunks[j].Remove(start, counts[i] + 1);
                             matched = true;
                             break;
                         }
@@ -395,12 +409,19 @@ public static class Day12
                     matched = true;
                     break;
                 }
-                // it's too long 
+                // it's too long and doesn't have ?s to break it up
                 else if (len > counts[i])
                 {
                     chunks[j] = "";
+                    break;
                 }
-                // it's too short 
+                // it's too short and has hashes, so that's a dealbreaker
+                else if(len < counts[i]  && chunks[j].Contains('#') )
+                {
+                    chunks[j] = "";
+                    break;
+                }
+                // it's too short but no hashes, no dealbreak
                 else
                 {
                     chunks[j] = "";
@@ -408,7 +429,7 @@ public static class Day12
 
                 if (matched) break;
             }
-            
+
             if (!matched) return false;
         }
 
