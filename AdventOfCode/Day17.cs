@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Data;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -7,65 +8,71 @@ public static class Day17
     public static void DoPartOne()
     {
         var lines = File.ReadAllLines(
-            "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day17_Test.txt");
+            "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day17.txt");
+        var map = new int[lines.Length, lines[0].Length];
 
-        // print out the map 
-
-        List<List<int>> heatMap = new List<List<int>>();
         for (int y = 0; y < lines.Length; y++)
         {
-            heatMap.Add(new List<int>());
             for (int x = 0; x < lines[y].Length; x++)
             {
-                heatMap[y].Add(-1);
+                map[y, x] = int.Parse("" + lines[y][x]);
             }
         }
 
+        // print out the map 
+
+        var heatMap = new Dictionary<(int x, int y, int dir, int heat), int>();
+
         (int x, int y) start = (0, 0);
-        (int x, int y) destination = (lines[0].Length-1, lines.Length-1);
+        (int x, int y) destination = (lines[0].Length - 1, lines.Length - 1);
 
         // location, dir, heatloss, straights
         // dir: east = 0, south = 1, west = 2, north = 3
-        var stack = new Stack<((int x, int y) pos, int dir, int heat, int straights, List<(int x, int y)> path)>();
-        stack.Push((start, 0, 0, 0, new List<(int x, int y)>()));
-        //stack.Push((start, 1, 0, 0, new List<(int x, int y)>()));
-        //stack.Push((start, 2, 0, 0, new List<(int x, int y)>()));
-        //stack.Push((start, 3, 0, 0, new List<(int x, int y)>()));
+        var stack = new Stack<((int x, int y) pos, int dir, int heat, int straights)>();
+        stack.Push((start, 0, 0, 0));
+        stack.Push((start, 1, 0, 0));
+        stack.Push((start, 2, 0, 0));
+        stack.Push((start, 3, 0, 0));
+
+        int minHeatLoss = 940;
+        var bestState = stack.Peek();
+        long iterations = 0;
         while (stack.Count > 0)
         {
-            //Console.WriteLine("Stack Height: " + stack.Count);
+            iterations++;
+
             var state = stack.Pop();
-            
+
+            if (iterations % 10000 == 0) Console.WriteLine("It: " + iterations + " St: " + stack.Count);
+            // prune if this branch is already worse than the best one 
+
+            if (state.heat >= minHeatLoss) continue;
+
+            // record best ways to the destination
             if (state.pos == destination)
             {
-                Console.WriteLine("We made it to the end with " + state.heat + " heatloss.");
-                
-                for (int y = 0; y < lines.Length; y++)
+                if (state.heat < minHeatLoss)
                 {
-                    for (int x = 0; x < lines[y].Length; x++)
-                    {
-                        if(state.path.Contains((x , y)) || state.pos == (x, y))
-                        {
-                            Console.Write("█");
-                        }
-                        else
-                        {
-                            Console.Write(lines[y][x]);
-                        }
-                    }
-                    Console.Write("\n");
+                    minHeatLoss = state.heat;
                 }
-                Console.Write("\n");
+                else
+                {
+                    continue;
+                }
+
+                Console.WriteLine(
+                    "We made it to the end with " + state.heat + " heatloss. Stack height: " + stack.Count +
+                    " Iterations: " + iterations);
                 continue;
             }
-            
-            var left= state.pos;
+
+            // build representation for the three possible steps from here
+            var left = state.pos;
             var leftDir = state.dir;
             var right = state.pos;
             var rightDir = state.dir;
             var straight = state.pos;
             var straightDir = state.dir;
-
             switch (state.dir)
             {
                 case 0:
@@ -99,50 +106,278 @@ public static class Day17
             }
 
             // case where we go left
-            if (left.y >= 0 && left.y < lines.Length && left.x >= 0 && left.x < lines[left.y].Length)
+            if (left.y >= 0 && left.y < map.GetLength(0) && left.x >= 0 && left.x < map.GetLength(1))
             {
-                var calculatedHeat = state.heat + int.Parse(""+lines[left.y][left.x]);
-                
-                // if we've never been to that tile or we had in a less efficient manner
-                if (heatMap[left.y][left.x] == -1 || heatMap[left.y][left.x] >= calculatedHeat)
-                {
-                    heatMap[left.y][left.x] = calculatedHeat;
+                var calculatedHeat = state.heat + map[left.y, left.x];
 
-                    var newList = new List<(int x, int y)>(state.path);
-                    newList.Add(state.pos);
-                    stack.Push((left, leftDir, calculatedHeat, 0, newList));
-                }
-            }
-            
-            // case where we go right
-            if (right.y >= 0 && right.y < lines.Length && right.x >= 0 && right.x < lines[right.y].Length)
-            {
-                var calculatedHeat = state.heat + int.Parse(""+lines[right.y][right.x]);
+                // prune if this would result in a worse case than we already have found
+                if (calculatedHeat > minHeatLoss) continue;
+
                 // if we've never been to that tile or we had in a less efficient manner
-                if (heatMap[right.y][right.x] == -1 || heatMap[right.y][right.x] >= calculatedHeat)
+                if (heatMap.ContainsKey((left.x, left.y, leftDir, 0)))
                 {
-                    heatMap[right.y][right.x] = calculatedHeat;
-                    
-                    var newList = new List<(int x, int y)>(state.path);
-                    newList.Add(state.pos);
-                    stack.Push((right, rightDir, calculatedHeat, 0, newList));
+                    if (heatMap[(left.x, left.y, leftDir, 0)] > calculatedHeat)
+                    {
+                        heatMap[(left.x, left.y, leftDir, 0)] = calculatedHeat;
+                        stack.Push((left, leftDir, calculatedHeat, 0));
+                    }
+                }
+                else
+                {
+                    heatMap.Add((left.x, left.y, leftDir, 0), calculatedHeat);
+                    stack.Push((left, leftDir, calculatedHeat, 0));
                 }
             }
-            
-            if (straight.y >= 0 && straight.y < lines.Length && straight.x >= 0 && straight.x < lines[straight.y].Length &&
+
+            // case where we go right
+            if (right.y >= 0 && right.y < map.GetLength(0) && right.x >= 0 && right.x < map.GetLength(1))
+            {
+                var calculatedHeat = state.heat + map[right.y, right.x];
+
+                // prune if this would result in a worse case than we already have found
+                if (calculatedHeat > minHeatLoss) continue;
+
+                // if we've never been to that tile or we had in a less efficient manner
+                if (heatMap.ContainsKey((right.x, right.y, rightDir, 0)))
+                {
+                    if (heatMap[(right.x, right.y, rightDir, 0)] > calculatedHeat)
+                    {
+                        heatMap[(right.x, right.y, rightDir, 0)] = calculatedHeat;
+                        stack.Push((right, rightDir, calculatedHeat, 0));
+                    }
+                }
+                else
+                {
+                    heatMap.Add((right.x, right.y, rightDir, 0), calculatedHeat);
+                    stack.Push((right, rightDir, calculatedHeat, 0));
+                }
+            }
+
+            if (straight.y >= 0 && straight.y < map.GetLength(0) && straight.x >= 0 &&
+                straight.x < map.GetLength(1) &&
                 state.straights < 2)
             {
-                var calculatedHeat = state.heat + int.Parse(""+lines[straight.y][straight.x]);
+                var calculatedHeat = state.heat + map[straight.y, straight.x];
+
+                // prune if this would result in a worse case than we already have found
+                if (calculatedHeat > minHeatLoss) continue;
+
                 // if we've never been to that tile or we had in a less efficient manner
-                if (heatMap[straight.y][straight.x] == -1 || heatMap[straight.y][straight.x] >= calculatedHeat)
+                if (heatMap.ContainsKey((straight.x, straight.y, straightDir, state.straights + 1)))
                 {
-                    heatMap[straight.y][straight.x] = calculatedHeat;
-                    
-                    var newList = new List<(int x, int y)>(state.path);
-                    newList.Add(state.pos);
-                    stack.Push((straight, straightDir, calculatedHeat, state.straights + 1, newList));
+                    if (heatMap[(straight.x, straight.y, straightDir, state.straights + 1)] >= calculatedHeat)
+                    {
+                        heatMap[(straight.x, straight.y, straightDir, state.straights + 1)] = calculatedHeat;
+                        stack.Push((straight, straightDir, calculatedHeat, state.straights + 1));
+                    }
+                }
+                else
+                {
+                    heatMap.Add((straight.x, straight.y, straightDir, state.straights + 1), calculatedHeat);
+                    stack.Push((straight, straightDir, calculatedHeat, state.straights + 1));
                 }
             }
         }
+
+        Console.WriteLine("Min Heat Loss: " + minHeatLoss + " iterations: " + iterations);
+    }
+
+    public static void DoPartTwo()
+    {
+        var lines = File.ReadAllLines(
+            "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day17.txt");
+        var map = new int[lines.Length, lines[0].Length];
+
+        for (int y = 0; y < lines.Length; y++)
+        {
+            for (int x = 0; x < lines[y].Length; x++)
+            {
+                map[y, x] = int.Parse("" + lines[y][x]);
+            }
+        }
+
+        // print out the map 
+
+        var heatMap = new Dictionary<(int x, int y, int dir, int straights), int>();
+
+        (int x, int y) start = (0, 0);
+        (int x, int y) destination = (lines[0].Length - 1, lines.Length - 1);
+
+        int maxDist = 10;
+        int minDist = 4;
+
+        // location, dir, heatloss, straights
+        // dir: east = 0, south = 1, west = 2, north = 3
+        var stack = new Stack<((int x, int y) pos, int dir, int heat, int straights, string path)>();
+        stack.Push((start, 0, 0, 0, ""));
+        stack.Push((start, 1, 0, 0, ""));
+        stack.Push((start, 2, 0, 0, ""));
+        stack.Push((start, 3, 0, 0, ""));
+
+        int minHeatLoss = 1500;
+        string bestPath = "";
+        long iterations = 0;
+
+        while (stack.Count > 0)
+        {
+            iterations++;
+
+            var state = stack.Pop();
+
+            if (iterations % 1000000 == 0)
+                Console.WriteLine("It: " + iterations + " St: " + stack.Count + " Ht: " + state.heat);
+            // prune if this branch is already worse than the best one 
+
+            if (state.heat >= minHeatLoss) continue;
+
+            // record best ways to the destination
+            if (state.pos == destination && state.straights >= minDist)
+            {
+                if (state.heat < minHeatLoss)
+                {
+                    minHeatLoss = state.heat;
+                    bestPath = state.path + "(" + state.pos.x + ", " + state.pos.y + ")";
+                }
+                else
+                {
+                    continue;
+                }
+
+                Console.WriteLine(
+                    "We made it to the end with " + state.heat + " heatloss. Stack height: " + stack.Count +
+                    " Iterations: " + iterations);
+                continue;
+            }
+
+            // build representation for the three possible steps from here
+            var left = state.pos;
+            var leftDir = state.dir;
+            var right = state.pos;
+            var rightDir = state.dir;
+            var straight = state.pos;
+            var straightDir = state.dir;
+            switch (state.dir)
+            {
+                case 0:
+                    straight.x++;
+                    left.y--;
+                    leftDir = 3;
+                    right.y++;
+                    rightDir = 1;
+                    break;
+                case 1:
+                    straight.y++;
+                    left.x++;
+                    leftDir = 0;
+                    right.x--;
+                    rightDir = 2;
+                    break;
+                case 2:
+                    straight.x--;
+                    left.y++;
+                    leftDir = 1;
+                    right.y--;
+                    rightDir = 3;
+                    break;
+                case 3:
+                    straight.y--;
+                    left.x--;
+                    leftDir = 2;
+                    right.x++;
+                    rightDir = 0;
+                    break;
+            }
+
+            var newStates = new List<((int x, int y) pos, int dir, int heat, int straights, string path)>();
+
+            // case where we go left
+            if (left.y >= 0 && left.y < map.GetLength(0) && left.x >= 0 && left.x < map.GetLength(1) &&
+                state.straights >= minDist)
+            {
+                var calculatedHeat = state.heat + map[left.y, left.x];
+
+                // prune if this would result in a worse case than we already have found
+                if (calculatedHeat > minHeatLoss) continue;
+
+                // if we've never been to that tile or we had in a less efficient manner
+                if (heatMap.ContainsKey((left.x, left.y, leftDir, 1)))
+                {
+                    if (heatMap[(left.x, left.y, leftDir, 1)] > calculatedHeat)
+                    {
+                        heatMap[(left.x, left.y, leftDir, 1)] = calculatedHeat;
+                        newStates.Add((left, leftDir, calculatedHeat, 1,
+                            state.path + "(" + state.pos.x + ", " + state.pos.y + ")"));
+                    }
+                }
+                else
+                {
+                    heatMap.Add((left.x, left.y, leftDir, 1), calculatedHeat);
+                    newStates.Add((left, leftDir, calculatedHeat, 1,
+                        state.path + "(" + state.pos.x + ", " + state.pos.y + ")"));
+                }
+            }
+
+            if (right.y >= 0 && right.y < map.GetLength(0) && right.x >= 0 && right.x < map.GetLength(1) &&
+                state.straights >= minDist)
+            {
+                var calculatedHeat = state.heat + map[right.y, right.x];
+
+                // prune if this would result in a worse case than we already have found
+                if (calculatedHeat > minHeatLoss) continue;
+
+                // if we've never been to that tile or we had in a less efficient manner
+                if (heatMap.ContainsKey((right.x, right.y, rightDir, 1)))
+                {
+                    if (heatMap[(right.x, right.y, rightDir, 1)] > calculatedHeat)
+                    {
+                        heatMap[(right.x, right.y, rightDir, 1)] = calculatedHeat;
+                        newStates.Add((right, rightDir, calculatedHeat, 1,
+                            state.path + "(" + state.pos.x + ", " + state.pos.y + ")"));
+                    }
+                }
+                else
+                {
+                    heatMap.Add((right.x, right.y, rightDir, 1), calculatedHeat);
+                    newStates.Add((right, rightDir, calculatedHeat, 1,
+                        state.path + "(" + state.pos.x + ", " + state.pos.y + ")"));
+                }
+            }
+
+            if (straight.y >= 0 && straight.y < map.GetLength(0) && straight.x >= 0 &&
+                straight.x < map.GetLength(1) &&
+                state.straights < maxDist)
+            {
+                var calculatedHeat = state.heat + map[straight.y, straight.x];
+
+                // prune if this would result in a worse case than we already have found
+                if (calculatedHeat > minHeatLoss) continue;
+
+                // if we've never been to that tile or we had in a less efficient manner
+                if (heatMap.ContainsKey((straight.x, straight.y, straightDir, state.straights + 1)))
+                {
+                    if (heatMap[(straight.x, straight.y, straightDir, state.straights + 1)] >= calculatedHeat)
+                    {
+                        heatMap[(straight.x, straight.y, straightDir, state.straights + 1)] = calculatedHeat;
+                        newStates.Add((straight, straightDir, calculatedHeat, state.straights + 1,
+                            state.path + "(" + state.pos.x + ", " + state.pos.y + ")"));
+                    }
+                }
+                else
+                {
+                    heatMap.Add((straight.x, straight.y, straightDir, state.straights + 1), calculatedHeat);
+                    newStates.Add((straight, straightDir, calculatedHeat, state.straights + 1,
+                        state.path + "(" + state.pos.x + ", " + state.pos.y + ")"));
+                }
+            }
+            
+            // sort new states
+            newStates = newStates.OrderBy(x => x.pos.x + x.pos.y).ToList();
+            for (int i = 0; i < newStates.Count; i++)
+            {
+                stack.Push(newStates[i]);
+            }
+        }
+
+        Console.WriteLine("Min Heat Loss: " + minHeatLoss + " iterations: " + iterations + "\n" + bestPath);
     }
 }
