@@ -4,6 +4,7 @@ public static class Day18
 {
     public static void DoPartOne()
     {
+        bool drawMaps = false;
         var lines = File.ReadAllLines(
             "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day18.txt");
 
@@ -77,11 +78,32 @@ public static class Day18
             map[loc.y, loc.x] = 1;
         }
 
+        int cellCount = 0;
+        for (int y = 0; y < map.GetLength(0); y++)
+        {
+            for (int x = 0; x < map.GetLength(1); x++)
+            {
+                if (map[y, x] == 1)
+                {
+                    if(drawMaps)Console.Write("#");
+                    cellCount++;
+                }
+                else
+                {
+                    if(drawMaps)Console.Write(" ");
+                }
+            }
+            if(drawMaps) Console.Write("\n");
+        }
+        if(drawMaps) Console.Write("\n");
+        var edgeCells = cellCount;
+        
+        
         // confirmed one down and to the right is inside the pool for test and actual data
         startLocation.x += 1;
         startLocation.y += 1;
         map[startLocation.y, startLocation.x] = 1;
-
+        
         // flood fill from start location
         var stack = new Stack<(int x, int y)>();
         stack.Push(startLocation);
@@ -113,190 +135,198 @@ public static class Day18
             }
         }
 
-        int cellCount = 0;
+        cellCount = 0;
         for (int y = 0; y < map.GetLength(0); y++)
         {
+            var lineTotal = 0;
             for (int x = 0; x < map.GetLength(1); x++)
             {
                 if (map[y, x] == 1)
                 {
-                    Console.Write("#");
+                    if(drawMaps)Console.Write("#");
                     cellCount++;
+                    lineTotal++;
                 }
                 else
                 {
-                    Console.Write(" ");
+                    if(drawMaps) Console.Write(" ");
                 }
             }
 
-            Console.Write("\n");
+            if (drawMaps)
+            {
+                Console.Write("\n");
+            }
+            else
+            {
+                //Console.WriteLine(y + ": " + lineTotal);
+            }
         }
-        Console.WriteLine("Width: " + map.GetLength(1) + " Height: " + map.GetLength(0));
+        
+        Console.WriteLine("Edge Cells: " + edgeCells);
         Console.WriteLine("Cells: " + cellCount);
     }
 
     public static void DoPartTwo()
     {
         var lines = File.ReadAllLines(
-            "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day18_Test.txt");
+            "C:\\Development\\AeLa\\AdventOfCode2023\\AdventOfCode\\Day18.txt");
 
         (long x, long y) currentLocation = (0, 0);
 
-        var locations = new List<(long x, long y)>();
-        locations.Add(currentLocation);
+        var lineSegments = new List<(long x1, long y1, long x2, long y2)>();
 
-        // add all locations to list
+        // bulid list of all line segments represented
         for (int i = 0; i < lines.Length; i++)
         {
             char dir = lines[i].Split(' ')[2][^2];
-            int dist = int.Parse(lines[i].Split(' ')[2].Substring(2,5), System.Globalization.NumberStyles.HexNumber);
+            long dist = long.Parse(lines[i].Split(' ')[2].Substring(2, 5), System.Globalization.NumberStyles.HexNumber);
 
             //char dir = lines[i].Split(' ')[0][0];
             //int dist = int.Parse(lines[i].Split(' ')[1]);
 
-            for (int j = 0; j < dist; j++)
-            {
-                switch (dir)
-                {
-                    case '3':
-                    case 'U':
-                        currentLocation.y -= 1;
-                        break;
-                    case '1':
-                    case 'D':
-                        currentLocation.y += 1;
-                        break;
-                    case '2':
-                    case 'L':
-                        currentLocation.x -= 1;
-                        break;
-                    case '0':
-                    case 'R':
-                        currentLocation.x += 1;
-                        break;
-                }
+            var previousLocation = currentLocation;
 
-                locations.Add(currentLocation);
+            switch (dir)
+            {
+                case '3':
+                case 'U':
+                    currentLocation.y -= dist;
+                    break;
+                case '1':
+                case 'D':
+                    currentLocation.y += dist;
+                    break;
+                case '2':
+                case 'L':
+                    currentLocation.x -= dist;
+                    break;
+                case '0':
+                case 'R':
+                    currentLocation.x += dist;
+                    break;
             }
+
+            lineSegments.Add((previousLocation.x, previousLocation.y, currentLocation.x, currentLocation.y));
         }
 
+        // calc mins and maxes
         (long x, long y) min = (long.MaxValue, long.MaxValue);
         (long x, long y) max = (long.MinValue, long.MinValue);
 
-        foreach (var loc in locations)
+        foreach (var line in lineSegments)
         {
-            if (loc.x < min.x) min.x = loc.x;
-            if (loc.x > max.x) max.x = loc.x;
-            if (loc.y < min.y) min.y = loc.y;
-            if (loc.y > max.y) max.y = loc.y;
+            if (line.x1 < min.x) min.x = line.x1;
+            if (line.x2 < min.x) min.x = line.x2;
+            if (line.x1 > max.x) max.x = line.x1;
+            if (line.x2 > max.x) max.x = line.x2;
+            if (line.y1 < min.y) min.y = line.y1;
+            if (line.y2 < min.y) min.y = line.y2;
+            if (line.y1 > max.y) max.y = line.y1;
+            if (line.y2 > max.y) max.y = line.y2;
         }
 
-        // adjust everything to be 0 indexed
-        for (int i = 0; i < locations.Count; i++)
+        long total = 0;
+        foreach (var line in lineSegments)
         {
-            var loc = locations[i];
-
-            loc.x -= min.x;
-            loc.y -= min.y;
-
-            locations[i] = loc;
-        }
-        
-        max.x -= min.x;
-        max.y -= min.y;
-        min.x -= min.x;
-        min.y -= min.y;
-
-        long cellCount = 0;
-        Console.WriteLine("Total Height: " + (max.y - min.y) + " Total Width: " + (max.x - min.x) + " Locations: " + locations.Count);
-        for (long y = min.y -1; y <= max.y + 1; y++)
-        {
-            bool inside = false;
-            bool crossing = false;
-            int entryOrientation = -1;
-            for (long x = min.x -1; x <= max.x + 1; x++)
+            // horizontal
+            if (line.y1 == line.y2)
             {
-                bool onEdge = locations.Contains((x, y));
-                if (onEdge) // we're on an edge
-                {
-                    // we just started crossing 
-                    if (!crossing)
-                    {
-                        bool edgeAbove = locations.Contains((x, y - 1));
-                        bool edgeBelow = locations.Contains((x, y + 1));
-                        if (edgeAbove && edgeBelow)
-                        {
-                            entryOrientation = 0;
-                        }
-                        else if (edgeAbove)
-                        {
-                            entryOrientation = 1;
-                        }
-                        else if (edgeBelow)
-                        {
-                            entryOrientation = 2;
-                        }
-                        else
-                        {
-                            entryOrientation = -1;
-                        }
-
-                        crossing = true;
-                    }
-                }
-                else // we're not on an edge
-                {
-                    if (crossing) // but we just were 
-                    {
-                        // information for the edge we just exited
-                        bool edgeAbove = locations.Contains((x-1, y - 1));
-                        bool edgeBelow = locations.Contains((x-1, y + 1));
-                        var exitOrientation = -1;
-                        if (edgeAbove && edgeBelow)
-                        {
-                            exitOrientation = 0;
-                        }
-                        else if (edgeAbove)
-                        {
-                            exitOrientation = 1;
-                        }
-                        else if (edgeBelow)
-                        {
-                            exitOrientation = 2;
-                        }
-                        
-                        switch (entryOrientation)
-                        {
-                            case 0: // we entered a full edge, we have to be inside now
-                                inside = !inside;
-                                break;
-                            case 1: // edge ONLY above
-                                if (exitOrientation != 1)
-                                {
-                                    inside = !inside;
-                                }
-                                break;
-                            case 2: // edge ONLY below
-                                if (exitOrientation != 2)
-                                {
-                                    inside = !inside;
-                                }
-                                break;
-                        }
-
-                        crossing = false;
-                        
-                    }
-                }
-
-                if (onEdge || inside)
-                {
-                    cellCount++;
-                }
+                total += Math.Abs(line.x2 - line.x1);
+            }
+            else
+            {
+                total += Math.Abs(line.y2 - line.y1);
             }
         }
 
-        Console.WriteLine("Width: " + max.x + " Height: " + max.y);
-        Console.WriteLine("Cells: " + cellCount);
+        var edgeCells = total;
+        
+        for (long y = min.y; y <= max.y; y++)
+        {
+            if(y % 1000000 == 0) Console.WriteLine("y: " + y + "(" + min.y + "," + max.y+")");
+            // y is the line we're currently evaluating
+            var intersects = new List<(long x, long o)>();
+            var parallels = new List<(long x1, long x2)>();
+            foreach (var line in lineSegments)
+            {
+                if (Math.Sign(line.y1 - y) != Math.Sign(line.y2 - y))
+                {
+                    var lineMin = Math.Min(line.y1, line.y2);
+                    var lineMax = Math.Max(line.y1, line.y2);
+
+                    // orientation:
+                    // -1 = error
+                    // 0 = line above and below
+                    // 1 = line above
+                    // 2 = line below
+                    var orientation = -1;
+                    if (lineMin < y && lineMax > y)
+                    {
+                        orientation = 0;
+                    }
+                    else if (lineMin < y) // line above
+                    {
+                        orientation = 1;
+                    }
+                    else if (lineMax > y) // line below
+                    {
+                        orientation = 2;
+                    }
+                    intersects.Add((line.x1, orientation));
+                }
+
+                if (line.y1 == line.y2 && line.y1 == y)
+                {
+                    parallels.Add((line.x1, line.x2));
+                }
+            }
+            
+            intersects = intersects.OrderBy(x => x).ToList();
+            
+            //Console.WriteLine("Line " + y + ": " + intersects.Count + " intersects, " + parallels.Count +" parallels");
+            bool inside = false;
+            var flips = 0;
+            var edgeCount = 0;
+            
+            // go segment by segment, stopping one before the last one
+            for (int i = 0; i < intersects.Count - 1; i++)
+            {
+                var a = intersects[i];
+                var b = intersects[i + 1];
+
+                // is the current segment covered with a parallel
+                var intersection = false;
+                for (int p = 0; p < parallels.Count; p++)
+                {
+                    // if this intersect overlaps with a parallel
+                    if (a.x == Math.Min(parallels[p].x1, parallels[p].x2) && 
+                        b.x == Math.Max(parallels[p].x1, parallels[p].x2))
+                    {
+                        intersection = true;
+                    }
+                }
+                
+                if (a.o == 0) // a was a vertical line
+                {
+                    // so flip inside
+                    inside = !inside;
+                }
+                else if(b.o != 0 && a.o != b.o && intersection) // the line continues on the other side
+                {
+                    inside = !inside;
+                }
+                
+                if (intersection == false && inside) 
+                {
+                    total += (b.x - a.x) - 1;
+                    flips++;
+                }
+            }
+
+        }
+        
+        Console.WriteLine("Edge cells: " + edgeCells);
+        Console.WriteLine("Total cells: " + total);
     }
 }
